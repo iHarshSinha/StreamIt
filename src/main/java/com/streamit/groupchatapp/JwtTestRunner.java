@@ -22,7 +22,8 @@ public class JwtTestRunner {
             String token = jwtService.generateToken(
                     user.getEmail(),
                     user.getRole(),
-                    user.getId()
+                    user.getId(),
+                    user.getName()
             );
 
             System.out.println("==================================");

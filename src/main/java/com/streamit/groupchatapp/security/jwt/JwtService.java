@@ -31,13 +31,15 @@ public class JwtService {
     public String generateToken(
             String email,
             String role,
-            Long userId
+            Long userId,
+            String name
     ) {
         return Jwts.builder()
                 .setSubject(email)
                 .addClaims(Map.of(
                         "role", role,
-                        "userId", userId
+                        "userId", userId,
+                        "name",name
                 ))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
@@ -72,6 +74,9 @@ public class JwtService {
 
     public Long extractUserId(String token) {
         return parseToken(token).getBody().get("userId", Long.class);
+    }
+    public String extractName(String token){
+        return parseToken(token).getBody().get("name", String.class);
     }
 
     // -------------------------------

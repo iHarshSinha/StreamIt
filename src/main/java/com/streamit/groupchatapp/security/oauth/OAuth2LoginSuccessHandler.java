@@ -68,7 +68,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String accessToken = jwtService.generateToken(
                 user.getEmail(),
                 user.getRole(),
-                user.getId()
+                user.getId(),
+                user.getName()
         );
 
         // 🔑 REFRESH TOKEN (opaque)

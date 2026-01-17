@@ -56,7 +56,8 @@ public class AuthService {
         return jwtService.generateToken(
                 user.getEmail(),
                 user.getRole(),
-                user.getId()
+                user.getId(),
+                user.getName()
         );
     }
     public void logout(String refreshToken) {
