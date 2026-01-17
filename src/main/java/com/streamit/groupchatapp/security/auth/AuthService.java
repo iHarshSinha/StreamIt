@@ -1,8 +1,8 @@
 package com.streamit.groupchatapp.security.auth;
 
 import com.streamit.groupchatapp.security.jwt.JwtService;
-import com.streamit.groupchatapp.user.User;
-import com.streamit.groupchatapp.user.UserRepository;
+import com.streamit.groupchatapp.model.User;
+import com.streamit.groupchatapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
