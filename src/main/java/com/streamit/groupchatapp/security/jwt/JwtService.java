@@ -32,14 +32,16 @@ public class JwtService {
             String email,
             String role,
             Long userId,
-            String name
+            String name,
+            String profileImageUrl
     ) {
         return Jwts.builder()
                 .setSubject(email)
                 .addClaims(Map.of(
                         "role", role,
                         "userId", userId,
-                        "name",name
+                        "name",name,
+                        "profileImageUrl",profileImageUrl
                 ))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
@@ -77,6 +79,9 @@ public class JwtService {
     }
     public String extractName(String token){
         return parseToken(token).getBody().get("name", String.class);
+    }
+    public String extractProfileImageUrl(String token){
+        return parseToken(token).getBody().get("profileImageUrl", String.class);
     }
 
     // -------------------------------
