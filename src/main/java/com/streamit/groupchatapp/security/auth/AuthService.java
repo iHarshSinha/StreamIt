@@ -31,6 +31,7 @@ public class AuthService {
     }
 
     public String refreshAccessToken(String refreshToken) {
+        System.out.println("method called\n\n\n\n");
 
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new IllegalArgumentException("Refresh token missing");

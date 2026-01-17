@@ -28,6 +28,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(cors->{})
                 // We are building a stateless REST API
                 .csrf(AbstractHttpConfigurer::disable)
 
