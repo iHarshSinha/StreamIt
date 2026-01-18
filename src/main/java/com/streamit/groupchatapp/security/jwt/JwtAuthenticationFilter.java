@@ -1,7 +1,7 @@
 package com.streamit.groupchatapp.security.jwt;
 
-import com.streamit.groupchatapp.user.User;
-import com.streamit.groupchatapp.user.UserRepository;
+import com.streamit.groupchatapp.model.User;
+import com.streamit.groupchatapp.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

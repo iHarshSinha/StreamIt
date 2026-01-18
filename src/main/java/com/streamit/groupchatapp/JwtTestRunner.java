@@ -1,8 +1,8 @@
 package com.streamit.groupchatapp;
 
 import com.streamit.groupchatapp.security.jwt.JwtService;
-import com.streamit.groupchatapp.user.User;
-import com.streamit.groupchatapp.user.UserRepository;
+import com.streamit.groupchatapp.model.User;
+import com.streamit.groupchatapp.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

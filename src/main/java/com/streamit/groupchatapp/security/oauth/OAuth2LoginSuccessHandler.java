@@ -1,8 +1,8 @@
 package com.streamit.groupchatapp.security.oauth;
 
 import com.streamit.groupchatapp.security.jwt.JwtService;
-import com.streamit.groupchatapp.user.User;
-import com.streamit.groupchatapp.user.UserRepository;
+import com.streamit.groupchatapp.model.User;
+import com.streamit.groupchatapp.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
