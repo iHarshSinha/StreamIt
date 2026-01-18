@@ -23,7 +23,8 @@ public class Group {
     private String groupId;
     private String groupName;
     private String groupDescription;
+    // createdBy field necessary
     private LocalDateTime createdOn;
     @ManyToMany(mappedBy = "groups", fetch = FetchType.LAZY)
-    private List<User> createdBy;
+    private List<User> users;
 }
