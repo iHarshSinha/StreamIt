@@ -57,7 +57,8 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole(),
                 user.getId(),
-                user.getName()
+                user.getName(),
+                user.getProfileImageUrl()
         );
     }
     public void logout(String refreshToken) {

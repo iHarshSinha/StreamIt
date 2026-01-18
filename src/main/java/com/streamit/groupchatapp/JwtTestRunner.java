@@ -23,7 +23,8 @@ public class JwtTestRunner {
                     user.getEmail(),
                     user.getRole(),
                     user.getId(),
-                    user.getName()
+                    user.getName(),
+                    user.getProfileImageUrl()
             );
 
             System.out.println("==================================");

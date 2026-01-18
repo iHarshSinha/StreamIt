@@ -69,7 +69,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 user.getEmail(),
                 user.getRole(),
                 user.getId(),
-                user.getName()
+                user.getName(),
+                user.getProfileImageUrl()
         );
 
         // 🔑 REFRESH TOKEN (opaque)
