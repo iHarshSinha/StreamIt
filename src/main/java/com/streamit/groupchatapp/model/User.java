@@ -1,10 +1,12 @@
 package com.streamit.groupchatapp.model;
 
+import com.streamit.groupchatapp.model.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -31,44 +33,21 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    /**
-     * Example values: "admin", "manager", "member", "user"
-     */
-    @Column(nullable = false)
-    private String role;
-
     @Column
     private String profileImageUrl;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**
-     * Owning side of Many-to-Many.
-     * Join table: user_groups(user_id, channel_id)
-     */
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "user_channels",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "channel_id")
-    )
-    @Builder.Default
-    private Set<Channel> channels = new HashSet<>();
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.ACTIVE;
+
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Optional helper methods (recommended)
-    public void joinChannel(Channel channel) {
-        this.channels.add(channel);
-        channel.getUsers().add(this);
-    }
 
-    public void leaveChannel(Channel channel) {
-        this.channels.remove(channel);
-        channel.getUsers().remove(this);
-    }
 }

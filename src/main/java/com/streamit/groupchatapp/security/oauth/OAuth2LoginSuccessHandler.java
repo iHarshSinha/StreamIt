@@ -1,5 +1,6 @@
 package com.streamit.groupchatapp.security.oauth;
 
+import com.streamit.groupchatapp.model.enums.Status;
 import com.streamit.groupchatapp.security.jwt.JwtService;
 import com.streamit.groupchatapp.model.User;
 import com.streamit.groupchatapp.repository.UserRepository;
@@ -59,15 +60,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                         User.builder()
                                 .email(email)
                                 .name(name != null ? name : "Unknown")
-                                .role("USER")
                                 .profileImageUrl(profileImageUrl)
+                                .status(Status.ACTIVE)
                                 .build()
                 ));
 
         // 🔐 ACCESS TOKEN (JWT)
         String accessToken = jwtService.generateToken(
                 user.getEmail(),
-                user.getRole(),
                 user.getId(),
                 user.getName(),
                 user.getProfileImageUrl()

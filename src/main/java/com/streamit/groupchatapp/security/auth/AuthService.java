@@ -55,7 +55,6 @@ public class AuthService {
         // 🔐 Generate new access token
         return jwtService.generateToken(
                 user.getEmail(),
-                user.getRole(),
                 user.getId(),
                 user.getName(),
                 user.getProfileImageUrl()

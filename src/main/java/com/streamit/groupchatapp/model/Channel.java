@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "groups")
+@Table(name = "channels")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,14 +21,6 @@ public class Channel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * This is optional.
-     * If you want a public-friendly ID (like "grp_83jd9"), keep it.
-     * Otherwise remove it and just use `id`.
-     */
-    @Column(unique = true)
-    private String channelId;
-
     @Column(nullable = false)
     private String channelName;
 
@@ -38,14 +30,7 @@ public class Channel {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdOn;
 
-    /**
-     * Inverse side of Many-to-Many.
-     * It maps back to User.channels.
-     */
-    @ManyToMany(mappedBy = "channels", fetch = FetchType.LAZY)
-    @Builder.Default
-    @JsonIgnore // avoids infinite recursion when returning JSON
-    private Set<User> users = new HashSet<>();
+    private String type;
 
     @PrePersist
     protected void onCreate() {

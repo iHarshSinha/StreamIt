@@ -30,7 +30,6 @@ public class JwtService {
 
     public String generateToken(
             String email,
-            String role,
             Long userId,
             String name,
             String profileImageUrl
@@ -38,7 +37,6 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(email)
                 .addClaims(Map.of(
-                        "role", role,
                         "userId", userId,
                         "name",name,
                         "profileImageUrl",profileImageUrl
@@ -70,9 +68,6 @@ public class JwtService {
         return parseToken(token).getBody().getSubject();
     }
 
-    public String extractRole(String token) {
-        return parseToken(token).getBody().get("role", String.class);
-    }
 
     public Long extractUserId(String token) {
         return parseToken(token).getBody().get("userId", Long.class);
