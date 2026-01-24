@@ -27,6 +27,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    //add a username feature
+
     @Column(nullable = false, unique = true)
     private String email;
 

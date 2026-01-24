@@ -4,9 +4,11 @@ import com.streamit.groupchatapp.security.jwt.JwtAuthenticationFilter;
 import com.streamit.groupchatapp.security.oauth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.streamit.groupchatapp.security.oauth.OAuth2LoginFailureHandler;
 import com.streamit.groupchatapp.security.oauth.OAuth2LoginSuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -56,6 +58,7 @@ public class SecurityConfig {
                 )
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/public",
                                 "/oauth2/**",
@@ -64,6 +67,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+
+
 
                 .addFilterBefore(
                         jwtAuthenticationFilter,

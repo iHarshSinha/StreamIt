@@ -35,15 +35,18 @@
         private final MembershipRepository membershipRepository;
         private final MessageRepository messageRepository;
 
+        @Transactional(readOnly = true)
         public List<ChannelResponseDTO> getChannels() {
-            List<Channel> channels = channelRepository.findAll();
-            List<ChannelResponseDTO> channelResponseDTOS = new ArrayList<>();
-            for (Channel channel : channels) {
-                ChannelResponseDTO channelResponseDTO = ChannelMapper.toResponse(channel);
-                channelResponseDTOS.add(channelResponseDTO);
-            }
-            return channelResponseDTOS;
+            User user = getCurrentUser();
+
+            List<Channel> channels = channelRepository.findAllForUserOrPublic(user.getId());
+
+            return channels.stream()
+                    .map(ChannelMapper::toResponse)
+                    .toList();
         }
+
+
 
         @Transactional(readOnly = true)
         public ChannelResponseDetailedDTO getChannel(Long id) {
@@ -62,9 +65,21 @@
                     .type(channelRequest.getType())
                     .build();
 
-            Channel saved = channelRepository.save(channel);
+            channelRepository.save(channel);
 
-            return ChannelMapper.toResponse(saved);
+            User user = getCurrentUser();
+
+            ChannelMembership member = ChannelMembership.builder()
+                    .channel(channel)
+                    .user(user)
+                    .role(ChannelRole.ADMIN)
+                    .status(Status.ACTIVE)
+                    .build();
+
+            membershipRepository.save(member);
+
+            return ChannelMapper.toResponse(channel);
+
         }
 
         @Transactional
@@ -203,8 +218,4 @@
 
             return messageRepository.save(msg);
         }
-
-
-
-
     }
