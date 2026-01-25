@@ -1,9 +1,13 @@
 package com.streamit.groupchatapp.controller;
 
 import com.streamit.groupchatapp.dto.UserResponseDTO;
+import com.streamit.groupchatapp.mapper.UserMapper;
 import com.streamit.groupchatapp.model.User;
 import com.streamit.groupchatapp.repository.UserRepository;
+import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,21 +31,12 @@ public class TestController {
 
     // ✅ GET /me
     @GetMapping("/me")
-    public UserResponseDTO me(Authentication authentication) {
-
-        // This will be the email if your JWT filter sets authentication correctly
-        User oauthUser = (User) authentication.getPrincipal();
-        String email = oauthUser.getEmail();
-
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return new UserResponseDTO(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getProfileImageUrl()
-        );
+    public ResponseEntity<?> me(Authentication authentication) {
+        // as while creating principal object we have already looked in db, we do not need to look it again
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        if(principal==null){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        return ResponseEntity.ok(UserMapper.toResponse(principal));
     }
 }

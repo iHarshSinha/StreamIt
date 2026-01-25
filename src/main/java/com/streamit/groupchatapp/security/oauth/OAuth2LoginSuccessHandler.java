@@ -1,9 +1,11 @@
 package com.streamit.groupchatapp.security.oauth;
 
+import com.streamit.groupchatapp.config.FrontendProperties;
 import com.streamit.groupchatapp.model.enums.Status;
 import com.streamit.groupchatapp.security.jwt.JwtService;
 import com.streamit.groupchatapp.model.User;
 import com.streamit.groupchatapp.repository.UserRepository;
+import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,10 +28,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final StringRedisTemplate redisTemplate;
+    private final FrontendProperties frontendProperties;
 
     // 🌍 From ENV / properties
-    @Value("${app.frontend.url}")
-    private String frontendBaseUrl;
+
 
     @Value("${auth.refresh-token.days}")
     private int refreshTokenDays;
@@ -67,10 +69,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         // 🔐 ACCESS TOKEN (JWT)
         String accessToken = jwtService.generateToken(
-                user.getEmail(),
-                user.getId(),
-                user.getName(),
-                user.getProfileImageUrl()
+                UserPrincipal.create(user)
         );
 
         // 🔑 REFRESH TOKEN (opaque)
@@ -111,8 +110,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         response.addCookie(cleanup);
 
         // ↩️ REDIRECT TO FRONTEND
+        System.out.println("reaching redirect success");
+        System.out.println(frontendProperties.getSuccessRedirectUrl()+"?code="+authCode);
         response.sendRedirect(
-                frontendBaseUrl + "/auth/callback?code=" + authCode
+                frontendProperties.getSuccessRedirectUrl() + "?code=" + authCode
         );
     }
 }

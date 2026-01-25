@@ -3,6 +3,7 @@ package com.streamit.groupchatapp.security.auth;
 import com.streamit.groupchatapp.security.jwt.JwtService;
 import com.streamit.groupchatapp.model.User;
 import com.streamit.groupchatapp.repository.UserRepository;
+import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -54,10 +55,7 @@ public class AuthService {
 
         // 🔐 Generate new access token
         return jwtService.generateToken(
-                user.getEmail(),
-                user.getId(),
-                user.getName(),
-                user.getProfileImageUrl()
+                UserPrincipal.create(user)
         );
     }
     public void logout(String refreshToken) {

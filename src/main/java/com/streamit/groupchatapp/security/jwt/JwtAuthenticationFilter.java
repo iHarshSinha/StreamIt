@@ -2,6 +2,7 @@ package com.streamit.groupchatapp.security.jwt;
 
 import com.streamit.groupchatapp.model.User;
 import com.streamit.groupchatapp.repository.UserRepository;
+import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -64,16 +65,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 8️⃣ Create authorities
-            List<SimpleGrantedAuthority> authorities =
-                    List.of(new SimpleGrantedAuthority("ROLE_USER"));
+            UserPrincipal principal=UserPrincipal.create(user);
 
             // 9️⃣ Create Authentication object
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            user,
+                            principal,
                             null,
-                            authorities
+                            principal.getAuthorities()
                     );
 
             authentication.setDetails(

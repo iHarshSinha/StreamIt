@@ -1,5 +1,6 @@
 package com.streamit.groupchatapp.security.jwt;
 
+import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -28,19 +29,16 @@ public class JwtService {
     // TOKEN GENERATION
     // -------------------------------
 
-    public String generateToken(
-            String email,
-            Long userId,
-            String name,
-            String profileImageUrl
-    ) {
+    public String generateToken(UserPrincipal principal) {
+        Map<String, Object> claims = Map.of(
+                "userId", principal.id(),
+                "name", principal.name(),
+                "profileImageUrl", principal.profileImageUrl()
+        );
+
         return Jwts.builder()
-                .setSubject(email)
-                .addClaims(Map.of(
-                        "userId", userId,
-                        "name",name,
-                        "profileImageUrl",profileImageUrl
-                ))
+                .setSubject(principal.email()) // Use email as subject
+                .addClaims(claims)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(signingKey, SignatureAlgorithm.HS256)

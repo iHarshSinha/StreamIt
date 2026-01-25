@@ -10,5 +10,6 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @Setter
 public class FrontendProperties {
-    private String url;
+    private String baseUrl;
+    private String successRedirectUrl;
 }

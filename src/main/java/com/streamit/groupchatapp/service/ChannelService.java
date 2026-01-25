@@ -12,6 +12,7 @@
     import com.streamit.groupchatapp.repository.MembershipRepository;
     import com.streamit.groupchatapp.repository.MessageRepository;
     import com.streamit.groupchatapp.repository.UserRepository;
+    import com.streamit.groupchatapp.security.principal.UserPrincipal;
     import lombok.RequiredArgsConstructor;
     import org.springframework.data.domain.Pageable;
     import org.springframework.http.HttpStatus;
@@ -22,8 +23,8 @@
     import org.springframework.web.server.ResponseStatusException;
 
     import java.time.LocalDateTime;
-    import java.util.ArrayList;
     import java.util.List;
+    import java.util.Optional;
 
 
     @Service
@@ -37,9 +38,9 @@
 
         @Transactional(readOnly = true)
         public List<ChannelResponseDTO> getChannels() {
-            User user = getCurrentUser();
+            UserPrincipal userPrincipal = getCurrentUser();
 
-            List<Channel> channels = channelRepository.findAllForUserOrPublic(user.getId());
+            List<Channel> channels = channelRepository.findAllForUserOrPublic(userPrincipal.id());
 
             return channels.stream()
                     .map(ChannelMapper::toResponse)
@@ -65,10 +66,15 @@
                     .type(channelRequest.getType())
                     .build();
 
+
+            UserPrincipal userPrincipal = getCurrentUser();
+            User user = userRepository.findByEmail(userPrincipal.email())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("User not found with email: " + userPrincipal.email())
+                    );
+
+
             channelRepository.save(channel);
-
-            User user = getCurrentUser();
-
             ChannelMembership member = ChannelMembership.builder()
                     .channel(channel)
                     .user(user)
@@ -85,17 +91,21 @@
         @Transactional
         public ChannelResponseDTO addUser(Long channelId) {
 
-            User user = getCurrentUser();
+            UserPrincipal userPrincipal = getCurrentUser();
 
             Channel channel = channelRepository.findById(channelId)
                     .orElseThrow(() -> new RuntimeException("Channel not found with id: " + channelId));
 
-            boolean alreadyJoined = membershipRepository.existsByChannelIdAndUserId(channelId, user.getId());
+            boolean alreadyJoined = membershipRepository.existsByChannelIdAndUserId(channelId, userPrincipal.id());
 
             if (alreadyJoined) {
                 // return channel response anyway (idempotent)
                 return ChannelMapper.toResponse(channel);
             }
+            User user = userRepository.findByEmail(userPrincipal.email())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("User not found with email: " + userPrincipal.email())
+                    );
 
             ChannelMembership member = ChannelMembership.builder()
                     .channel(channel)
@@ -113,7 +123,11 @@
         @Transactional
         public ChannelResponseDTO removeUser(Long channelId) {
 
-            User user = getCurrentUser();
+            UserPrincipal userPrincipal = getCurrentUser();
+            User user = userRepository.findByEmail(userPrincipal.email())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("User not found with email: " + userPrincipal.email())
+                    );
 
             Channel channel = channelRepository.findById(channelId)
                     .orElseThrow(() -> new RuntimeException("Channel not found with id: " + channelId));
@@ -125,7 +139,7 @@
 
 
 
-        private User getCurrentUser() {
+        private UserPrincipal getCurrentUser() {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
             if (auth == null || !auth.isAuthenticated()) {
@@ -134,8 +148,8 @@
 
             Object principal = auth.getPrincipal();
 
-            if (principal instanceof User user) {
-                return user;
+            if (principal instanceof UserPrincipal userPrincipal) {
+                return userPrincipal;
             }
 
             throw new RuntimeException("Unexpected principal type: " + principal.getClass());
