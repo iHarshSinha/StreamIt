@@ -1,12 +1,15 @@
 package com.streamit.groupchatapp.service;
 
 import com.streamit.groupchatapp.dto.ChannelInviteDTO;
+import com.streamit.groupchatapp.exception.ResourceNotFoundException;
 import com.streamit.groupchatapp.model.*;
 import com.streamit.groupchatapp.model.enums.ChannelRole;
 import com.streamit.groupchatapp.model.enums.InviteStatus;
 import com.streamit.groupchatapp.model.enums.Status;
 import com.streamit.groupchatapp.repository.*;
+import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,41 +28,40 @@ public class ChannelInviteService {
     private static final int INVITE_EXPIRY_DAYS = 2;
 
     @Transactional
-    public ChannelInviteDTO sendInvite(Long channelId, Long invitedUserId, User currentUser) {
+    public ChannelInviteDTO sendInvite(Long channelId, Long invitedUserId, UserPrincipal userPrincipal) {
+
 
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new RuntimeException("Channel not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found"));
 
         ChannelMembership membership = membershipRepository
-                .findByChannelIdAndUserId(channelId, currentUser.getId())
-                .orElseThrow(() -> new RuntimeException("You are not a member"));
+                .findByChannelIdAndUserId(channelId, userPrincipal.id())
+                .orElseThrow(() -> new AccessDeniedException("You are not a member"));
 
         if (!membership.getRole().equals(ChannelRole.ADMIN)) {
-            throw new RuntimeException("Only admins can invite users");
+            throw new AccessDeniedException("Only admins can invite users");
         }
 
         User invitedUser = userRepository.findById(invitedUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // You can enforce "only admins/owners can invite" here
-        // Example: check currentUser membership role == ADMIN/OWNER
 
         // Prevent inviting someone already a member
         boolean alreadyMember = membershipRepository.existsByChannelIdAndUserId(channelId, invitedUserId);
         if (alreadyMember) {
-            throw new RuntimeException("User is already a member of this channel");
+            throw new IllegalArgumentException("User is already a member of this channel");
         }
 
         // Prevent duplicate pending invite
         inviteRepository.findByChannelIdAndInvitedUserIdAndStatus(channelId, invitedUserId, InviteStatus.PENDING)
-                .ifPresent(inv -> { throw new RuntimeException("Invite already pending"); });
+                .ifPresent(inv -> { throw new IllegalArgumentException("Invite already pending"); });
 
         LocalDateTime now = LocalDateTime.now();
-
+        User user = userRepository.getReferenceById(userPrincipal.id());
         ChannelInvite invite = ChannelInvite.builder()
                 .channel(channel)
                 .invitedUser(invitedUser)
-                .invitedBy(currentUser)
+                .invitedBy(user)
                 .status(InviteStatus.PENDING)
                 .createdAt(now)
                 .expiresAt(now.plusDays(INVITE_EXPIRY_DAYS))
@@ -71,30 +73,32 @@ public class ChannelInviteService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChannelInviteDTO> getMyInvites(User currentUser, boolean pendingOnly) {
+    public List<ChannelInviteDTO> getMyInvites(UserPrincipal userPrincipal, boolean pendingOnly) {
         List<ChannelInvite> invites = pendingOnly
-                ? inviteRepository.findByInvitedUserIdAndStatusOrderByCreatedAtDesc(currentUser.getId(), InviteStatus.PENDING)
-                : inviteRepository.findByInvitedUserIdOrderByCreatedAtDesc(currentUser.getId());
+                ? inviteRepository.findByInvitedUserIdAndStatusOrderByCreatedAtDesc(userPrincipal.id(), InviteStatus.PENDING)
+                : inviteRepository.findByInvitedUserIdOrderByCreatedAtDesc(userPrincipal.id());
 
         return invites.stream().map(this::mapToDTO).toList();
     }
 
     @Transactional
-    public void acceptInvite(Long inviteId, User currentUser) {
+    public void acceptInvite(Long inviteId, UserPrincipal userPrincipal) {
         ChannelInvite invite = inviteRepository.findById(inviteId)
-                .orElseThrow(() -> new RuntimeException("Invite not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Invite not found"));
 
-        validateInviteOwnership(invite, currentUser);
+        validateInviteOwnership(invite, userPrincipal);
         validateNotExpired(invite);
 
         if (invite.getStatus() != InviteStatus.PENDING) {
-            throw new RuntimeException("Invite is not pending");
+            throw new IllegalArgumentException("Invite is not pending");
         }
+
+        User user  = userRepository.getReferenceById(userPrincipal.id());
 
         // Create membership
         ChannelMembership membership = ChannelMembership.builder()
                 .channel(invite.getChannel())
-                .user(currentUser)
+                .user(user)
                 .role(ChannelRole.MEMBER)       // or your enum
                 .status(Status.ACTIVE)     // or your enum
                 .joinedAt(LocalDateTime.now())
@@ -107,24 +111,25 @@ public class ChannelInviteService {
     }
 
     @Transactional
-    public void rejectInvite(Long inviteId, User currentUser) {
+    public void rejectInvite(Long inviteId, UserPrincipal userPrincipal) {
         ChannelInvite invite = inviteRepository.findById(inviteId)
-                .orElseThrow(() -> new RuntimeException("Invite not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Invite not found"));
 
-        validateInviteOwnership(invite, currentUser);
+        validateInviteOwnership(invite, userPrincipal);
         validateNotExpired(invite);
 
         if (invite.getStatus() != InviteStatus.PENDING) {
-            throw new RuntimeException("Invite is not pending");
+            throw new IllegalArgumentException("Invite is not pending");
         }
 
         invite.setStatus(InviteStatus.REJECTED);
         inviteRepository.save(invite);
     }
 
-    private void validateInviteOwnership(ChannelInvite invite, User currentUser) {
-        if (!invite.getInvitedUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Not authorized to modify this invite");
+    private void
+    validateInviteOwnership(ChannelInvite invite, UserPrincipal currentUser) {
+        if (!invite.getInvitedUser().getId().equals(currentUser.id())) {
+            throw new AccessDeniedException("Not authorized to modify this invite");
         }
     }
 
@@ -132,7 +137,7 @@ public class ChannelInviteService {
         if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
             invite.setStatus(InviteStatus.EXPIRED);
             inviteRepository.save(invite);
-            throw new RuntimeException("Invite expired");
+            throw new IllegalArgumentException("Invite expired");
         }
     }
 

@@ -4,7 +4,6 @@ import com.streamit.groupchatapp.security.jwt.JwtAuthenticationFilter;
 import com.streamit.groupchatapp.security.oauth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.streamit.groupchatapp.security.oauth.OAuth2LoginFailureHandler;
 import com.streamit.groupchatapp.security.oauth.OAuth2LoginSuccessHandler;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +26,7 @@ public class SecurityConfig {
 
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
 
         http
                 .cors(cors->{})

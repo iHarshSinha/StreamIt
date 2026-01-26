@@ -8,7 +8,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
 
 
 import java.time.Instant;
@@ -32,7 +31,8 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage(),
-                request.getRequestURI()
+                request.getRequestURI(),
+                null
         );
     }
 
@@ -55,14 +55,11 @@ public class GlobalExceptionHandler {
                         )
                 );
 
-        return ResponseEntity.badRequest().body(
-                Map.of(
-                        "timestamp", Instant.now(),
-                        "status", HttpStatus.BAD_REQUEST.value(),
-                        "error", "Validation failed",
-                        "path", request.getRequestURI(),
-                        "details", fieldErrors
-                )
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation failed",
+                request.getRequestURI(),
+                fieldErrors
         );
     }
 
@@ -77,8 +74,9 @@ public class GlobalExceptionHandler {
     ) {
         return buildResponse(
                 HttpStatus.FORBIDDEN,
-                "Access denied",
-                request.getRequestURI()
+                ex.getMessage(),
+                request.getRequestURI(),
+                null
         );
     }
 
@@ -86,15 +84,16 @@ public class GlobalExceptionHandler {
      * 404 - Not Found (optional custom exception support)
      * Only useful if you throw ResourceNotFoundException
      */
-    @ExceptionHandler(ResponseStatusException.class)
+    @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<?> handleNotFound(
-            ResponseStatusException ex,
+            ResourceNotFoundException ex,
             HttpServletRequest request
     ) {
         return buildResponse(
                 HttpStatus.NOT_FOUND,
                 ex.getMessage(),
-                request.getRequestURI()
+                request.getRequestURI(),
+                null
         );
     }
 
@@ -112,7 +111,8 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Something went wrong",
-                request.getRequestURI()
+                request.getRequestURI(),
+                null
         );
     }
 
@@ -122,23 +122,30 @@ public class GlobalExceptionHandler {
     private ResponseEntity<Map<String, Object>> buildResponse(
             HttpStatus status,
             String message,
-            String path
+            String path,
+            Object details // Add this
     ) {
-        return ResponseEntity.status(status).body(
-                Map.of(
-                        "timestamp", Instant.now(),
-                        "status", status.value(),
-                        "error", message,
-                        "path", path
-                )
-        );
+        String safePath = (path != null) ? path.replaceAll("[<>]", "") : "";
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", Instant.now());
+        body.put("status", status.value());
+        body.put("error", status.getReasonPhrase());
+        body.put("message", message);
+        body.put("path", safePath);
+        if (details != null) body.put("details", details);
+
+        return ResponseEntity.status(status).body(body);
     }
+
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolation(
-            ConstraintViolationException ex
+            ConstraintViolationException ex,
+            HttpServletRequest request
     ) {
-        return ResponseEntity.badRequest().body(
-                Map.of("error", ex.getMessage())
-        );
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Constraint violation",
+                request.getRequestURI(),
+                ex.getMessage());
     }
 }

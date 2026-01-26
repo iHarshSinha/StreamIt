@@ -1,6 +1,7 @@
 package com.streamit.groupchatapp.service;
 
 import com.streamit.groupchatapp.dto.*;
+import com.streamit.groupchatapp.exception.ResourceNotFoundException;
 import com.streamit.groupchatapp.mapper.ChannelMapper;
 import com.streamit.groupchatapp.model.Channel;
 import com.streamit.groupchatapp.model.ChannelMembership;
@@ -15,16 +16,12 @@ import com.streamit.groupchatapp.repository.UserRepository;
 import com.streamit.groupchatapp.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 
 @Service
@@ -37,8 +34,7 @@ public class ChannelService {
     private final MessageRepository messageRepository;
 
     @Transactional(readOnly = true)
-    public List<ChannelResponseDTO> getChannels() {
-        UserPrincipal userPrincipal = getCurrentUser();
+    public List<ChannelResponseDTO> getChannels(UserPrincipal userPrincipal) {
 
         List<Channel> channels = channelRepository.findAllForUserOrPublic(userPrincipal.id());
 
@@ -49,16 +45,9 @@ public class ChannelService {
 
 
 
-    @Transactional(readOnly = true)
-    public ChannelResponseDetailedDTO getChannel(Long id) {
-        Channel channel = channelRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Channel not found with id: " + id));
-
-        return ChannelMapper.toDetailedResponse(channel);
-    }
 
 
-    public ChannelResponseDTO createChannel(ChannelRequestDTO channelRequest) {
+    public ChannelResponseDTO createChannel(ChannelRequestDTO channelRequest, UserPrincipal userPrincipal) {
 
         Channel channel = Channel.builder()
                 .channelName(channelRequest.getChannelName())
@@ -66,13 +55,7 @@ public class ChannelService {
                 .type(channelRequest.getType())
                 .build();
 
-
-        UserPrincipal userPrincipal = getCurrentUser();
-        User user = userRepository.findByEmail(userPrincipal.email())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found with email: " + userPrincipal.email())
-                );
-
+        User user = userRepository.getReferenceById(userPrincipal.id());
 
         channelRepository.save(channel);
         ChannelMembership member = ChannelMembership.builder()
@@ -89,12 +72,11 @@ public class ChannelService {
     }
 
     @Transactional
-    public ChannelResponseDTO addUser(Long channelId) {
+    public ChannelResponseDTO addUser(Long channelId, UserPrincipal userPrincipal) {
 
-        UserPrincipal userPrincipal = getCurrentUser();
 
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new RuntimeException("Channel not found with id: " + channelId));
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
 
         boolean alreadyJoined = membershipRepository.existsByChannelIdAndUserId(channelId, userPrincipal.id());
 
@@ -102,10 +84,7 @@ public class ChannelService {
             // return channel response anyway (idempotent)
             return ChannelMapper.toResponse(channel);
         }
-        User user = userRepository.findByEmail(userPrincipal.email())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found with email: " + userPrincipal.email())
-                );
+        User user = userRepository.getReferenceById(userPrincipal.id());
 
         ChannelMembership member = ChannelMembership.builder()
                 .channel(channel)
@@ -121,46 +100,24 @@ public class ChannelService {
 
 
     @Transactional
-    public ChannelResponseDTO removeUser(Long channelId) {
+    public ChannelResponseDTO removeUser(Long channelId, UserPrincipal  userPrincipal) {
 
-        UserPrincipal userPrincipal = getCurrentUser();
-        User user = userRepository.findByEmail(userPrincipal.email())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found with email: " + userPrincipal.email())
-                );
 
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new RuntimeException("Channel not found with id: " + channelId));
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
 
-        membershipRepository.deleteByChannelIdAndUserId(channelId, user.getId());
+        membershipRepository.deleteByChannelIdAndUserId(channelId, userPrincipal.id());
 
         return ChannelMapper.toResponse(channel);
     }
 
 
 
-    private UserPrincipal getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("Unauthenticated request");
-        }
-
-        Object principal = auth.getPrincipal();
-
-        if (principal instanceof UserPrincipal userPrincipal) {
-            return userPrincipal;
-        }
-
-        throw new RuntimeException("Unexpected principal type: " + principal.getClass());
-    }
-
-
     @Transactional(readOnly = true)
     public ChannelResponseDetailedDTO openChannel(Long channelId, Long userId, int limit, Long cursor) {
 
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found"));
 
         ChannelMembership membership = membershipRepository
                 .findByChannelIdAndUserId(channelId, userId)
@@ -170,7 +127,7 @@ public class ChannelService {
 
         // If private channel → block access unless member
         if (channel.getType().equals("PRIVATE") && !isMember) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a member of this channel");
+            throw new AccessDeniedException("Not a member of this channel");
         }
 
         List<Message> messages = messageRepository.fetchMessages(channelId, cursor, Pageable.ofSize(limit));
@@ -208,24 +165,25 @@ public class ChannelService {
 
 
     @Transactional
-    public Message testSendMessage(Long channelId, User sender, String content) {
+    public Message testSendMessage(Long channelId, UserPrincipal sender, String content) {
 
         if (content == null || content.trim().isEmpty()) {
             throw new IllegalArgumentException("content cannot be null/empty");
         }
 
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new RuntimeException("Channel not found: " + channelId));
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found: " + channelId));
 
         // Optional but strongly recommended
-        boolean isMember = membershipRepository.existsByChannelIdAndUserId(channelId, sender.getId());
+        boolean isMember = membershipRepository.existsByChannelIdAndUserId(channelId, sender.id());
         if (!isMember) {
-            throw new RuntimeException("User is not a member of this channel");
+            throw new AccessDeniedException("User is not a member of this channel");
         }
+         User user =  userRepository.getReferenceById(sender.id());
 
         Message msg = Message.builder()
                 .channel(channel)
-                .sender(sender)                 // adjust to your entity field name
+                .sender(user)                 // adjust to your entity field name
                 .text(content)
                 .createdAt(LocalDateTime.now())    // adjust to your entity field name
                 .build();
