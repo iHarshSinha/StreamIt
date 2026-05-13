@@ -58,16 +58,17 @@ public class SecurityConfig {
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers(
+                                "/ws/**",
                                 "/public",
                                 "/oauth2/**",
                                 "/login/**",
                                 "/auth/**"
                         ).permitAll()
+
                         .anyRequest().authenticated()
                 )
-
-
 
                 .addFilterBefore(
                         jwtAuthenticationFilter,
