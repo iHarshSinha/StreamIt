@@ -26,11 +26,17 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
+
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "channel_id", nullable = false)
     private Channel channel;
+
+
     @Column(nullable = false)
     private String text;
+
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

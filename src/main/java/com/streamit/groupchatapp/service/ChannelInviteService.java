@@ -2,13 +2,16 @@ package com.streamit.groupchatapp.service;
 
 import com.streamit.groupchatapp.dto.ChannelInviteDTO;
 import com.streamit.groupchatapp.exception.ResourceNotFoundException;
+import com.streamit.groupchatapp.mapper.ChannelInviteMapper;
 import com.streamit.groupchatapp.model.*;
-import com.streamit.groupchatapp.model.enums.ChannelRole;
-import com.streamit.groupchatapp.model.enums.InviteStatus;
-import com.streamit.groupchatapp.model.enums.Status;
+import com.streamit.groupchatapp.model.enums.memberChannelRelation.MemberPosition;
+import com.streamit.groupchatapp.model.enums.invite.InviteStatus;
+import com.streamit.groupchatapp.model.enums.memberChannelRelation.MemberStatus;
 import com.streamit.groupchatapp.repository.*;
 import com.streamit.groupchatapp.security.principal.UserPrincipal;
+import com.streamit.groupchatapp.utils.InviteHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +27,11 @@ public class ChannelInviteService {
     private final ChannelRepository channelRepository;
     private final UserRepository userRepository;
     private final MembershipRepository membershipRepository;
+    private final ChannelInviteMapper channelInviteMapper;
+    private final InviteHelper inviteHelper;
 
-    private static final int INVITE_EXPIRY_DAYS = 2;
+    @Value("${app.invite.expire.duration}")
+    private int inviteExpiryDays;
 
     @Transactional
     public ChannelInviteDTO sendInvite(Long channelId, Long invitedUserId, UserPrincipal userPrincipal) {
@@ -38,7 +44,7 @@ public class ChannelInviteService {
                 .findByChannelIdAndUserId(channelId, userPrincipal.id())
                 .orElseThrow(() -> new AccessDeniedException("You are not a member"));
 
-        if (!membership.getRole().equals(ChannelRole.ADMIN)) {
+        if (!membership.getRole().equals(MemberPosition.ADMIN)) {
             throw new AccessDeniedException("Only admins can invite users");
         }
 
@@ -64,12 +70,12 @@ public class ChannelInviteService {
                 .invitedBy(user)
                 .status(InviteStatus.PENDING)
                 .createdAt(now)
-                .expiresAt(now.plusDays(INVITE_EXPIRY_DAYS))
+                .expiresAt(now.plusDays(inviteExpiryDays))
                 .build();
 
         inviteRepository.save(invite);
 
-        return mapToDTO(invite);
+        return channelInviteMapper.toDTO(invite);
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +84,9 @@ public class ChannelInviteService {
                 ? inviteRepository.findByInvitedUserIdAndStatusOrderByCreatedAtDesc(userPrincipal.id(), InviteStatus.PENDING)
                 : inviteRepository.findByInvitedUserIdOrderByCreatedAtDesc(userPrincipal.id());
 
-        return invites.stream().map(this::mapToDTO).toList();
+        return invites.stream()
+                .map(channelInviteMapper::toDTO)
+                .toList();
     }
 
     @Transactional
@@ -86,8 +94,8 @@ public class ChannelInviteService {
         ChannelInvite invite = inviteRepository.findById(inviteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invite not found"));
 
-        validateInviteOwnership(invite, userPrincipal);
-        validateNotExpired(invite);
+        inviteHelper.validateInviteOwnership(invite, userPrincipal);
+        inviteHelper.validateNotExpired(invite);
 
         if (invite.getStatus() != InviteStatus.PENDING) {
             throw new IllegalArgumentException("Invite is not pending");
@@ -99,8 +107,8 @@ public class ChannelInviteService {
         ChannelMembership membership = ChannelMembership.builder()
                 .channel(invite.getChannel())
                 .user(user)
-                .role(ChannelRole.MEMBER)       // or your enum
-                .status(Status.ACTIVE)     // or your enum
+                .role(MemberPosition.MEMBER)       // or your enum
+                .personGroupStatus(MemberStatus.ACTIVE)     // or your enum
                 .joinedAt(LocalDateTime.now())
                 .build();
 
@@ -115,8 +123,8 @@ public class ChannelInviteService {
         ChannelInvite invite = inviteRepository.findById(inviteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invite not found"));
 
-        validateInviteOwnership(invite, userPrincipal);
-        validateNotExpired(invite);
+        inviteHelper.validateInviteOwnership(invite, userPrincipal);
+        inviteHelper.validateNotExpired(invite);
 
         if (invite.getStatus() != InviteStatus.PENDING) {
             throw new IllegalArgumentException("Invite is not pending");
@@ -126,31 +134,6 @@ public class ChannelInviteService {
         inviteRepository.save(invite);
     }
 
-    private void
-    validateInviteOwnership(ChannelInvite invite, UserPrincipal currentUser) {
-        if (!invite.getInvitedUser().getId().equals(currentUser.id())) {
-            throw new AccessDeniedException("Not authorized to modify this invite");
-        }
-    }
 
-    private void validateNotExpired(ChannelInvite invite) {
-        if (invite.getExpiresAt().isBefore(LocalDateTime.now())) {
-            invite.setStatus(InviteStatus.EXPIRED);
-            inviteRepository.save(invite);
-            throw new IllegalArgumentException("Invite expired");
-        }
-    }
 
-    private ChannelInviteDTO mapToDTO(ChannelInvite invite) {
-        return ChannelInviteDTO.builder()
-                .inviteId(invite.getId())
-                .channelId(invite.getChannel().getId())
-                .channelName(invite.getChannel().getChannelName())
-                .invitedById(invite.getInvitedBy().getId())
-                .invitedByName(invite.getInvitedBy().getName())
-                .status(invite.getStatus().name())
-                .createdAt(invite.getCreatedAt())
-                .expiresAt(invite.getExpiresAt())
-                .build();
-    }
 }

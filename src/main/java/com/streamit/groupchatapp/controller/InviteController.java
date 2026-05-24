@@ -19,7 +19,7 @@ import java.util.List;
 public class InviteController {
 
     private final ChannelInviteService inviteService;
-    // ✅ Admin sends invite to a specific user for a channel
+
     @PostMapping("/invites/send")
     public ResponseEntity<ChannelInviteDTO> sendInvite(
             @Valid @RequestBody SendInviteRequestDTO request,

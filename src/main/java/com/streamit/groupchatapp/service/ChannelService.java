@@ -7,8 +7,8 @@ import com.streamit.groupchatapp.model.Channel;
 import com.streamit.groupchatapp.model.ChannelMembership;
 import com.streamit.groupchatapp.model.Message;
 import com.streamit.groupchatapp.model.User;
-import com.streamit.groupchatapp.model.enums.ChannelRole;
-import com.streamit.groupchatapp.model.enums.Status;
+import com.streamit.groupchatapp.model.enums.memberChannelRelation.MemberPosition;
+import com.streamit.groupchatapp.model.enums.memberChannelRelation.MemberStatus;
 import com.streamit.groupchatapp.repository.ChannelRepository;
 import com.streamit.groupchatapp.repository.MembershipRepository;
 import com.streamit.groupchatapp.repository.MessageRepository;
@@ -61,8 +61,8 @@ public class ChannelService {
         ChannelMembership member = ChannelMembership.builder()
                 .channel(channel)
                 .user(user)
-                .role(ChannelRole.ADMIN)
-                .status(Status.ACTIVE)
+                .role(MemberPosition.ADMIN)
+                .personGroupStatus(MemberStatus.ACTIVE)
                 .build();
 
         membershipRepository.save(member);
@@ -89,8 +89,8 @@ public class ChannelService {
         ChannelMembership member = ChannelMembership.builder()
                 .channel(channel)
                 .user(user)
-                .role(ChannelRole.MEMBER)
-                .status(Status.ACTIVE)
+                .role(MemberPosition.MEMBER)
+                .personGroupStatus(MemberStatus.ACTIVE)
                 .build();
 
         membershipRepository.save(member);
@@ -155,7 +155,7 @@ public class ChannelService {
                 .viewer(ViewerMembershipDTO.builder()
                         .isMember(isMember)
                         .role(isMember ? membership.getRole().name() : null)
-                        .status(isMember ? membership.getStatus().name() : null)
+                        .status(isMember ? membership.getPersonGroupStatus().name() : null)
                         .joinedAt(isMember ? membership.getJoinedAt() : null)
                         .build())
                 .messages(messageDTOs)

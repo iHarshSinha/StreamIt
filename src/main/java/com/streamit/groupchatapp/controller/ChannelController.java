@@ -27,8 +27,9 @@ public class ChannelController {
     private final ChannelService channelService;
 
     @GetMapping("/channels")
-    public ResponseEntity<List<ChannelResponseDTO>> getChannels(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<List<ChannelResponseDTO>> getChannels(@AuthenticationPrincipal UserPrincipal userPrincipal) { // returns the channel
 
+        // controller calls service service calls repo to find all the channel in which the user is there or it is public and then use channel mapper convert to dto and send
         List<ChannelResponseDTO> channels = channelService.getChannels(userPrincipal);
 
         if (channels.isEmpty()) {
@@ -48,6 +49,9 @@ public class ChannelController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         // ✅ success
+        // ask ibrahim once.
+        // understood the flow.
+        // complete info of chat with pagination only for limiting the number of messages that we are sending.
         return ResponseEntity.ok(channelService.openChannel(
                 channelId,
                 userPrincipal.id(),
@@ -57,6 +61,7 @@ public class ChannelController {
     }
 
 
+    // basic post route but should make it enum(type of channel)
     @PostMapping("/channels")
     public ResponseEntity<ChannelResponseDTO> createChannel(
             @Valid @RequestBody ChannelRequestDTO channelRequest, @AuthenticationPrincipal UserPrincipal userPrincipal
@@ -64,6 +69,7 @@ public class ChannelController {
         ChannelResponseDTO response = channelService.createChannel(channelRequest, userPrincipal);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 
     @PostMapping("/channels/{channelId}/join")
     public ResponseEntity<ChannelResponseDTO> joinChannel(

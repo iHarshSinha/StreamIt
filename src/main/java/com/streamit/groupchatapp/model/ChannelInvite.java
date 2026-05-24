@@ -1,6 +1,6 @@
 package com.streamit.groupchatapp.model;
 
-import com.streamit.groupchatapp.model.enums.InviteStatus;
+import com.streamit.groupchatapp.model.enums.invite.InviteStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

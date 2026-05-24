@@ -1,8 +1,9 @@
 package com.streamit.groupchatapp.security.oauth;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,22 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
     public void onAuthenticationFailure(
             HttpServletRequest request,
             HttpServletResponse response,
-            org.springframework.security.core.AuthenticationException exception
-    ) throws IOException, ServletException {
+            AuthenticationException exception
+    ) throws IOException {
 
-        exception.printStackTrace(); // IMPORTANT for now
+        // Ignore already-used OAuth callback requests
+        if (exception instanceof OAuth2AuthenticationException oauthEx) {
+
+            if ("authorization_request_not_found"
+                    .equals(oauthEx.getError().getErrorCode())) {
+
+                response.sendRedirect("http://localhost:5173/login");
+                return;
+            }
+        }
+
+        // Real errors
+        exception.printStackTrace();
 
         response.sendError(
                 HttpServletResponse.SC_UNAUTHORIZED,

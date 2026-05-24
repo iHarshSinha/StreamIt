@@ -1,7 +1,7 @@
 package com.streamit.groupchatapp.repository;
 
 import com.streamit.groupchatapp.model.ChannelInvite;
-import com.streamit.groupchatapp.model.enums.InviteStatus;
+import com.streamit.groupchatapp.model.enums.invite.InviteStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

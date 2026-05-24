@@ -1,7 +1,7 @@
 package com.streamit.groupchatapp.security.oauth;
 
 import com.streamit.groupchatapp.config.FrontendProperties;
-import com.streamit.groupchatapp.model.enums.Status;
+import com.streamit.groupchatapp.model.enums.memberChannelRelation.MemberStatus;
 import com.streamit.groupchatapp.security.jwt.JwtService;
 import com.streamit.groupchatapp.model.User;
 import com.streamit.groupchatapp.repository.UserRepository;
@@ -63,7 +63,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                                 .email(email)
                                 .name(name != null ? name : "Unknown")
                                 .profileImageUrl(profileImageUrl)
-                                .status(Status.ACTIVE)
+                                .personGroupStatus(MemberStatus.ACTIVE)
                                 .build()
                 ));
 

@@ -16,7 +16,7 @@ public class ChannelResponseDetailedDTO {
     private String type;
 
     private ViewerMembershipDTO viewer;
-    private List<MessageDTO> messages;
+    private List<MessageDTO> messages; // details of message and inside that details of sender
 
     // for pagination / infinite scroll
     private Long nextCursor;

@@ -1,4 +1,4 @@
-package com.streamit.groupchatapp.model.enums;
+package com.streamit.groupchatapp.model.enums.invite;
 
 public enum InviteStatus {
     PENDING,

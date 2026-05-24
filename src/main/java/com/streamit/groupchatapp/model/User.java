@@ -1,13 +1,10 @@
 package com.streamit.groupchatapp.model;
 
-import com.streamit.groupchatapp.model.enums.Status;
+import com.streamit.groupchatapp.model.enums.memberChannelRelation.MemberStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(
@@ -43,7 +40,7 @@ public class User {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status = Status.ACTIVE;
+    private MemberStatus personGroupStatus = MemberStatus.ACTIVE;
 
 
     @PrePersist
